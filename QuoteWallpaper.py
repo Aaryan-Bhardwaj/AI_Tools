@@ -165,26 +165,37 @@ def ProcessImage(image, message, author, prompt, extended):
     screenAspectRatio = user32.GetSystemMetrics(0) / user32.GetSystemMetrics(1) # width / height
     image = Image.open(image)
     if extended:
-        image = ExtendImage(image, screenAspectRatio, prompt)
+        imageExtended = ExtendImage(image, screenAspectRatio, prompt)
+        image = AddCaption(imageExtended.copy(), message, author)
+        return image, imageExtended
     else:
-        image = AddPaddingToWallpaper(image, screenAspectRatio)
-    image = AddCaption(image, message, author)
-    
-    return image
+        imagePadded = AddPaddingToWallpaper(image, screenAspectRatio)
+        image = AddCaption(imagePadded.copy(), message, author)
+        return image, imagePadded
         
 def SaveImage(urls, name, quote, author, prompt, extended):
+    if not os.path.exists(name.split('/')[0]):
+        os.makedirs(name.split('/')[0])
     for i in range(len(urls)):
-        imageSaveName = f"{name}.png" if i == 0 else f"{name}{i}.png"
+        imageSaveName = f"{name}.png"
         imageData = requests.get(urls[i]).content
         imageStream = io.BytesIO(imageData)
-        image = ProcessImage(imageStream, quote, author, prompt, extended)
+        image, imageNoCaption = ProcessImage(imageStream, quote, author, prompt, extended)
+        count = 1
+        while os.path.exists(imageSaveName):
+            imageSaveName = f"{name}{count}.png"
+            imageNoCaptionSaveName = f"{name}{count}_nocap.png"
+            count += 1            
         image.save(imageSaveName)
+        imageNoCaption.save(imageNoCaptionSaveName)
+        
+    return imageSaveName
 
 def SetWallpaper(imageName):
     cwd = os.getcwd()
-    ctypes.windll.user32.SystemParametersInfoW(20, 0, cwd+f"\{imageName}.png" , 0) 
+    ctypes.windll.user32.SystemParametersInfoW(20, 0, cwd+f"\{imageName}" , 0) 
 
-imageName = 'wallpaper'
+imageName = 'Wallpapers/wallpaper'
 gptAPIKey = ""
 category = ['technology' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
 languague = 'english' # english or hindi
@@ -194,5 +205,5 @@ prompt = GetPromptFromQuote(quote, category, gptAPIKey)
 image_url = GetImageURL(prompt, gptAPIKey, ImageCount=1, ImageSize='1024x1024')
 
 print("Quote: " + quote +  author + "\n" + prompt)
-SaveImage(image_url, imageName, quote, author, prompt, extended=True)
+imageName = SaveImage(image_url, imageName, quote, author, prompt, extended=True)
 SetWallpaper(imageName)
