@@ -122,6 +122,77 @@ def ExtendImage(img, screenAspectRatio, prompt):
     
     return img_final
 
+def ExtendImageVertical(img, screenAspectRatio, prompt):
+    def get_image(image_url):
+        # Send a GET request to the URL and store the response
+        response = requests.get(image_url)
+        # Check if the request was successful
+        if response.status_code == 200:
+            # Write the image content to a buffer
+            image_buffer = BytesIO(response.content)
+            return Image.open(image_buffer)
+        else:
+            raise ValueError(f'Image could not be retrieved from {image_url}')
+
+    h, w = img.size
+    f = 3
+    newHeight = int(w * screenAspectRatio)
+    rectangle = np.zeros([newHeight, w, f], dtype='uint8')
+    start = (newHeight - w) // 2
+    rectangle[start:start + h,:] = np.array(img)
+    Image.fromarray(rectangle)
+
+    top = rectangle[:h, :]
+    bottom = rectangle[-h:, :]
+
+    Image.fromarray(top)
+    Image.fromarray(bottom)
+
+    # # Top part is all zeros
+    mask_top = np.concatenate([np.zeros([start, w, f+1]), 
+                            255*np.ones([h - start, w , f+1])]).astype('uint8')
+    mask_bottom = np.concatenate([255*np.ones([h - start, w, f+1]), 
+                            np.zeros([start, w, f+1])]).astype('uint8')
+
+    Image.fromarray(mask_top)
+    Image.fromarray(mask_bottom)
+
+    top_buffer = BytesIO()
+    mask_buffer = BytesIO()
+
+    Image.fromarray(top).save(top_buffer, 'png')
+    Image.fromarray(mask_top).save(mask_buffer, 'png')
+
+    edit_top = openai.Image.create_edit(
+        image=top_buffer.getvalue(),
+        mask=mask_buffer.getvalue(),
+        prompt=prompt,
+        n=1,
+        size='1024x1024'
+    )
+    image_top = get_image(edit_top['data'][0]['url'])
+    
+    bottom_buffer = BytesIO()
+    mask_buffer = BytesIO()
+
+    Image.fromarray(bottom).save(bottom_buffer, 'png')
+    Image.fromarray(mask_bottom).save(mask_buffer, 'png')
+
+    edit_bottom = openai.Image.create_edit(
+        image=bottom_buffer.getvalue(),
+        mask=mask_buffer.getvalue(),
+        prompt=prompt,
+        n=1,
+        size='1024x1024'
+    )
+    image_bottom = get_image(edit_bottom['data'][0]['url'])
+    
+    img_final = Image.new('RGB', (rectangle.shape[1], newHeight))
+    img_final.paste(image_top, (0, 0))
+    img_final.paste(image_bottom, (0, newHeight - h))
+    
+    return img_final
+
 def AddPaddingToWallpaper(image, aspectRatio=(16//9), blurRadius=25):
     image = image.convert('RGBA')
     height = image.height
@@ -166,8 +237,9 @@ def ProcessImage(image, message, author, prompt, extended):
     image = Image.open(image)
     if extended:
         imageExtended = ExtendImage(image, screenAspectRatio, prompt)
+        imageExtendedVertical = ExtendImageVertical(image, screenAspectRatio, prompt)
         image = AddCaption(imageExtended.copy(), message, author)
-        return image, imageExtended
+        return image, imageExtended, imageExtendedVertical
     else:
         imagePadded = AddPaddingToWallpaper(image, screenAspectRatio)
         image = AddCaption(imagePadded.copy(), message, author)
@@ -180,15 +252,17 @@ def SaveImage(urls, name, quote, author, prompt, extended):
         imageSaveName = f"{name}.png"
         imageData = requests.get(urls[i]).content
         imageStream = io.BytesIO(imageData)
-        image, imageNoCaption = ProcessImage(imageStream, quote, author, prompt, extended)
+        image, imageNoCaption, imageVertical = ProcessImage(imageStream, quote, author, prompt, extended)
         count = 1
         while os.path.exists(imageSaveName):
             imageSaveName = f"{name}{count}.png"
             imageNoCaptionSaveName = f"{name}{count}_nocap.png"
+            imageVerticalSaveName = f"{name}{count}_vertical.png"
             count += 1            
         image.save(imageSaveName)
         imageNoCaption.save(imageNoCaptionSaveName)
-        
+        imageVertical.save(imageVerticalSaveName)
+                
     return imageSaveName
 
 def SetWallpaper(imageName):
@@ -196,7 +270,7 @@ def SetWallpaper(imageName):
     ctypes.windll.user32.SystemParametersInfoW(20, 0, cwd+f"\{imageName}" , 0) 
 
 imageName = 'Wallpapers/wallpaper'
-gptAPIKey = ""
+gptAPIKey = "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"
 category = ['technology' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
 languague = 'english' # english or hindi
 
