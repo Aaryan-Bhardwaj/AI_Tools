@@ -8,23 +8,24 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import numpy as np
 from io import BytesIO
 
-def GetQuote(category, languague = "english"):
+def GetQuote(categories, languague = "english"):
     if languague == "english":        
         responseDict = json.loads(requests.get('https://api.quotable.io/tags').text)
         tagslugs = [tag['slug'] for tag in responseDict]
         tagnames = [tag['name'] for tag in responseDict]
-
-        if category in tagslugs or category in tagnames:
-            response = requests.get('https://api.quotable.io/quotes/random?tags=' + category + "&maxLength=128&limit=1")
-            responseDict = json.loads(response.text)[0]
-            return responseDict['content'], " - " + responseDict['author']
-        else:
-            print("Error:", response.status_code, response.text)
-            return '', ''
+        categoryString = ''
+        for category in categories:
+            if category in tagslugs or category in tagnames:
+                categoryString = categoryString + ',' + category
+        response = requests.get('https://api.quotable.io/quotes/random?tags=' + category + "&maxLength=128&limit=1")
+        responseDict = json.loads(response.text)[0]
+        return responseDict['content'], " - " + responseDict['author']
     elif languague == "hindi":
-        response = requests.get(f"https://hindi-quotes.vercel.app/random/{category}")
-        responseDict = json.loads(response.text)        
-        return responseDict['quote'], "" 
+        for category in categories:
+            if category in ['success', 'love', 'attitude', 'positive', 'motivational']:
+                response = requests.get(f"https://hindi-quotes.vercel.app/random/{category}")
+                responseDict = json.loads(response.text)        
+                return responseDict['quote'], ""
     else:
         print("Invalid Language:")
         exit()
@@ -33,7 +34,7 @@ def GetPromptFromQuote(quote, category, apiKey):
     openai.api_key = apiKey
     
     messages = [
-        {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back an wallpaper that encapsulates the emotion and context of the quote. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
+        {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back an wallpaper that encapsulates the emotion and context of the quote. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category[0]}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
         {"role": "user", "content": f"quote: {quote}"}
     ]
     completion = openai.ChatCompletion.create(
@@ -185,7 +186,7 @@ def SetWallpaper(imageName):
 
 imageName = 'wallpaper'
 gptAPIKey = ""
-category = 'famous-quotes'  # hindi_categories: success, love, attitude, positive, motivational
+category = ['technology' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
 languague = 'english' # english or hindi
 
 quote, author = GetQuote(category, languague)
