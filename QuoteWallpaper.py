@@ -42,42 +42,48 @@ def GetImageURL(Prompt, apiKey, ImageCount=1, ImageSize='512x512'):
         
     return urls
 
-def ProcessImage(image_data, message, author):
+def ProcessImage(image, message, author):
     user32 = ctypes.windll.user32    
     screenAspectRatio = user32.GetSystemMetrics(0) / user32.GetSystemMetrics(1) # width / height
+    image = Image.open(image)
 
-    imageStream = io.BytesIO(image_data)
-    image = Image.open(imageStream)
     image = AddPaddingToWallpaper(image, screenAspectRatio)
     image = AddCaption(image, message, author)
     
     return image
 
-def AddCaption(image, message, author, fontColor='white'):
-    message = message + '\n' + ' ' * (len(message) - len(author)) + author    
+def AddCaption(image, message, author, fontColor='white', borderColor='black'):
     font = ImageFont.truetype("Amiko-Regular.ttf", size=int(image.size[1]/50))
+    nSpaces = (font.getlength(message) - font.getlength(author)) // font.getlength(" ")
+    textOverlay = message + '\n' + ' ' * int(nSpaces * 0.95) + author        
     W, H = (image.size[0], image.size[1])
     draw = ImageDraw.Draw(image)
-    _, _, w, h = draw.textbbox((0, 0), message, font=font)
+    _, _, w, h = draw.textbbox((0, 0), textOverlay, font=font)
+    textLocation = ((W-w)/2, (H-h)*7.3/8)
 
-    textLocation = ((W-w)/2, (H-h)*7.5/8)
-    shadowColor = (0, 0, 0)  # Black
-    shadowOffset = 2  
-    draw.text((textLocation[0] + shadowOffset, textLocation[1] + shadowOffset), message, font=font, fill=shadowColor)
-    draw.text((textLocation[0] + shadowOffset, textLocation[1] - shadowOffset), message, font=font, fill=shadowColor)
-    draw.text((textLocation[0] - shadowOffset, textLocation[1] + shadowOffset), message, font=font, fill=shadowColor)
-    draw.text((textLocation[0] - shadowOffset, textLocation[1] - shadowOffset), message, font=font, fill=shadowColor)
+    # For borders
+    borderWidth = 1
+    for x in (-1, 0, 1):
+        for y in (-1, 0, 1):
+            draw.text((
+                    textLocation[0] + (borderWidth * x),
+                    textLocation[1] + (borderWidth * y),
+                ),
+                textOverlay,
+                font=font,
+                fill=borderColor,
+            )
 
-    draw.text(textLocation, message, fill=fontColor, font=font)#'OpenSansCondensed-LightItalic.ttf')
+    draw.text(textLocation, textOverlay, fill=fontColor, font=font)#'OpenSansCondensed-LightItalic.ttf')
 
     return image
         
 def SaveImage(urls, name, quote, author):
     for i in range(len(urls)):
         imageSaveName = f"{name}.png" if i == 0 else f"{name}{i}.png"
-
         imageData = requests.get(urls[i]).content
-        image = ProcessImage(imageData, quote, author)
+        imageStream = io.BytesIO(imageData)
+        image = ProcessImage(imageStream, quote, author)
         image.save(imageSaveName)
 
 def AddPaddingToWallpaper(image, aspectRatio=(16//9), blurRadius=25):
@@ -112,9 +118,9 @@ def SetWallpaper(imageName):
 imageName = 'wallpaper'
 gptAPIKey = ""
 category = 'happiness'  # hindi_categories: success, love, attitude, positive, motivational
-languague = 'english' # english or hindi
+language = 'english' # english or hindi
 
-quote, author = GetQuote(category, languague)
+quote, author = GetQuote(category, language)
 prompt = GetPromptFromQuote(quote, category, gptAPIKey)
 image_url = GetImageURL(prompt, gptAPIKey, ImageCount=1, ImageSize='1024x1024')
 
