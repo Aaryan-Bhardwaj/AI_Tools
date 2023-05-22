@@ -237,7 +237,7 @@ def ProcessImage(image, message, author, prompt, extended):
     image = Image.open(image)
     if extended:
         imageExtended = ExtendImage(image, screenAspectRatio, prompt)
-        imageExtendedVertical = ExtendImageVertical(image, screenAspectRatio, prompt)
+        imageExtendedVertical = ExtendImageVertical(image, screenAspectRatio = 2, prompt=prompt)
         image = AddCaption(imageExtended.copy(), message, author)
         return image, imageExtended, imageExtendedVertical
     else:
@@ -270,7 +270,7 @@ def SetWallpaper(imageName):
     ctypes.windll.user32.SystemParametersInfoW(20, 0, cwd+f"\{imageName}" , 0) 
 
 imageName = 'Wallpapers/wallpaper'
-gptAPIKey = "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"
+gptAPIKey = ""
 category = ['technology' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
 languague = 'english' # english or hindi
 
