@@ -15,7 +15,7 @@ def GetQuote(category, languague = "english"):
         tagnames = [tag['name'] for tag in responseDict]
 
         if category in tagslugs or category in tagnames:
-            response = requests.get('https://api.quotable.io/quotes/random?tags=' + category + "&limit=1")
+            response = requests.get('https://api.quotable.io/quotes/random?tags=' + category + "&maxLength=128&limit=1")
             responseDict = json.loads(response.text)[0]
             return responseDict['content'], " - " + responseDict['author']
         else:
@@ -33,7 +33,7 @@ def GetPromptFromQuote(quote, category, apiKey):
     openai.api_key = apiKey
     
     messages = [
-        {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back an wallpaper that creatively encapsulates the emotion and context of the quote. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
+        {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back an wallpaper that encapsulates the emotion and context of the quote. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
         {"role": "user", "content": f"quote: {quote}"}
     ]
     completion = openai.ChatCompletion.create(
