@@ -254,11 +254,16 @@ def SaveImage(urls, name, quote, author, prompt, extended):
         imageStream = io.BytesIO(imageData)
         image, imageNoCaption, imageVertical = ProcessImage(imageStream, quote, author, prompt, extended)
         count = 1
-        while os.path.exists(imageSaveName):
-            imageSaveName = f"{name}{count}.png"
-            imageNoCaptionSaveName = f"{name}{count}_nocap.png"
-            imageVerticalSaveName = f"{name}{count}_vertical.png"
-            count += 1            
+        if os.path.exists(imageSaveName):
+            while os.path.exists(imageSaveName):
+                imageSaveName = f"{name}{count}.png"
+                imageNoCaptionSaveName = f"{name}{count}_nocap.png"
+                imageVerticalSaveName = f"{name}{count}_vertical.png"
+                count += 1            
+        else:
+            imageSaveName = f"{name}.png"
+            imageNoCaptionSaveName = f"{name}_nocap.png"
+            imageVerticalSaveName = f"{name}_vertical.png"
         image.save(imageSaveName)
         imageNoCaption.save(imageNoCaptionSaveName)
         imageVertical.save(imageVerticalSaveName)
@@ -271,7 +276,7 @@ def SetWallpaper(imageName):
 
 imageName = 'Wallpapers/wallpaper'
 gptAPIKey = ""
-category = ['technology' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
+category = ['inspirational' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
 languague = 'english' # english or hindi
 
 quote, author = GetQuote(category, languague)
