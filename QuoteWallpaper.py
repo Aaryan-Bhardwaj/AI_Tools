@@ -5,6 +5,7 @@ import ctypes
 import os
 import io
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from StableDiffusionAPI import get_image_url
 
 def GetQuote(category, languague = "english"):
     if languague == "english":        
@@ -39,7 +40,7 @@ def GetImageURL(Prompt, apiKey, ImageCount=1, ImageSize='512x512'):
     urls = []
     for data in response['data']:
         urls.append(data['url'])
-        
+
     return urls
 
 def ProcessImage(image, message, author):
@@ -111,9 +112,28 @@ def GetPromptFromQuote(quote, category, apiKey):
     )
     return completion.choices[0].message.content
 
+def getChatGPTPromptFromQuote(quote, category, accessToken):
+    from revChatGPT.V1 import Chatbot
+
+    chatbot = Chatbot(config={
+    "access_token": accessToken
+    })
+    prompt = f"Your task is to create a prompt that i can give to an image generator to get back an wallpaper that encapsulates the emotion and context of the quote. the wallpaper should have a darker asthetic, represent the theme {category} and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."
+    prompt += f"quote: {quote}"
+    response = ""
+    for data in chatbot.ask(
+    prompt
+    ):
+        response = data["message"]
+    return response
+
+    
 def SetWallpaper(imageName):
     cwd = os.getcwd()
     ctypes.windll.user32.SystemParametersInfoW(20, 0, cwd+f"\{imageName}.png" , 0) 
+
+# Get yours from https://chat.openai.com/api/auth/session -> accessToken
+accessToken = ""
 
 imageName = 'wallpaper'
 gptAPIKey = ""
@@ -121,8 +141,10 @@ category = 'happiness'  # hindi_categories: success, love, attitude, positive, m
 language = 'english' # english or hindi
 
 quote, author = GetQuote(category, language)
-prompt = GetPromptFromQuote(quote, category, gptAPIKey)
-image_url = GetImageURL(prompt, gptAPIKey, ImageCount=1, ImageSize='1024x1024')
+# prompt = GetPromptFromQuote(quote, category, gptAPIKey)
+# image_url = GetImageURL(prompt, gptAPIKey, ImageCount=1, ImageSize='1024x1024')
+prompt = getChatGPTPromptFromQuote(quote, category, accessToken)
+image_url = [get_image_url(prompt),]
 
 print("Quote: " + quote +  author + "\n" + prompt)
 SaveImage(image_url, imageName, quote, author)#, author)
