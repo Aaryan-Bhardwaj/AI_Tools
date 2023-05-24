@@ -231,6 +231,10 @@ def AddCaption(image, message, author, fontColor='white', borderColor='black'):
 
     return image
 
+def resizeToScreenResolution(image):
+    user32 = ctypes.windll.user32    
+    return image.resize((user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)))
+
 def ProcessImage(image, message, author, prompt, extended):
     user32 = ctypes.windll.user32    
     screenAspectRatio = user32.GetSystemMetrics(0) / user32.GetSystemMetrics(1) # width / height
@@ -238,10 +242,12 @@ def ProcessImage(image, message, author, prompt, extended):
     if extended:
         imageExtended = ExtendImage(image, screenAspectRatio, prompt)
         imageExtendedVertical = ExtendImageVertical(image, screenAspectRatio = 2, prompt=prompt)
+        imageExtended = resizeToScreenResolution(imageExtended)
         image = AddCaption(imageExtended.copy(), message, author)
         return image, imageExtended, imageExtendedVertical
     else:
         imagePadded = AddPaddingToWallpaper(image, screenAspectRatio)
+        imagePadded = resizeToScreenResolution(imagePadded)
         image = AddCaption(imagePadded.copy(), message, author)
         return image, imagePadded
         
