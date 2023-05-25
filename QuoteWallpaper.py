@@ -8,8 +8,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import numpy as np
 from io import BytesIO
 
-def GetQuote(categories, languague = "english"):
-    if languague == "english":        
+def GetQuote(categories, language = "english"):
+    if language == "english":        
         responseDict = json.loads(requests.get('https://api.quotable.io/tags').text)
         tagslugs = [tag['slug'] for tag in responseDict]
         tagnames = [tag['name'] for tag in responseDict]
@@ -20,7 +20,7 @@ def GetQuote(categories, languague = "english"):
         response = requests.get('https://api.quotable.io/quotes/random?tags=' + category + "&maxLength=128&limit=1")
         responseDict = json.loads(response.text)[0]
         return responseDict['content'], " - " + responseDict['author']
-    elif languague == "hindi":
+    elif language == "hindi":
         for category in categories:
             if category in ['success', 'love', 'attitude', 'positive', 'motivational']:
                 response = requests.get(f"https://hindi-quotes.vercel.app/random/{category}")
@@ -283,9 +283,9 @@ def SetWallpaper(imageName):
 imageName = 'Wallpapers/wallpaper'
 gptAPIKey = ""
 category = ['inspirational' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
-languague = 'english' # english or hindi
+language = 'english' # english or hindi
 
-quote, author = GetQuote(category, languague)
+quote, author = GetQuote(category, language)
 prompt = GetPromptFromQuote(quote, category, gptAPIKey)
 image_url = GetImageURL(prompt, gptAPIKey, ImageCount=1, ImageSize='1024x1024')
 
