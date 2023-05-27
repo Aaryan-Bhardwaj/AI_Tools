@@ -4,12 +4,13 @@ import json
 import ctypes
 import os
 import io
+import re
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import numpy as np
 from io import BytesIO
 
-def GetQuote(categories, language = "english"):
-    if language == "english":        
+def GetQuote(categories, languague = "english"):
+    if languague == "English":        
         responseDict = json.loads(requests.get('https://api.quotable.io/tags').text)
         tagslugs = [tag['slug'] for tag in responseDict]
         tagnames = [tag['name'] for tag in responseDict]
@@ -20,7 +21,7 @@ def GetQuote(categories, language = "english"):
         response = requests.get('https://api.quotable.io/quotes/random?tags=' + category + "&maxLength=128&limit=1")
         responseDict = json.loads(response.text)[0]
         return responseDict['content'], " - " + responseDict['author']
-    elif language == "hindi":
+    elif languague == "Hindi":
         for category in categories:
             if category in ['success', 'love', 'attitude', 'positive', 'motivational']:
                 response = requests.get(f"https://hindi-quotes.vercel.app/random/{category}")
@@ -30,21 +31,26 @@ def GetQuote(categories, language = "english"):
         print("Invalid Language:")
         exit()
         
-def GetPromptFromQuote(quote, category, apiKey):
+def GetPromptFromQuote(quote, category, artStyle, vibeStr, apiKey):
     openai.api_key = apiKey
     
-    messages = [
-        {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back an wallpaper that encapsulates the emotion and context of the quote. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category[0]}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
-        {"role": "user", "content": f"quote: {quote}"}
-    ]
+    if vibeStr == "":
+        messages = [
+            {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back a wallpaper, in {artStyle} style, that encapsulates the emotion and context of the quote. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category[0]}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
+            {"role": "user", "content": f"quote: {quote}"}
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": f"Your task is to create a prompt that i can give to an image generator to get back a wallpaper, in {artStyle} style, that encapsulates the emotion and context of the quote and the vibe: {vibeStr}. the wallpaper should have a dark but colorful asthetic, represent the theme of '{category[0]}' and not contain any text. the prompt should only describe image details and color pallet in the wallpaper, limited to 30 words."},
+            {"role": "user", "content": f"quote: {quote}"}
+        ]
     completion = openai.ChatCompletion.create(
     model="gpt-3.5-turbo",
     messages=messages
     )
     return completion.choices[0].message.content
 
-def GetImageURL(Prompt, apiKey, ImageCount=1, ImageSize='512x512'):
-    openai.api_key = apiKey
+def GetImageURL(Prompt, ImageCount=1, ImageSize='512x512'):
     
     response = openai.Image.create(
             prompt = Prompt,
@@ -58,7 +64,7 @@ def GetImageURL(Prompt, apiKey, ImageCount=1, ImageSize='512x512'):
         
     return urls
 
-def ExtendImage(img, screenAspectRatio, prompt):
+def ExtendImageHorizontal(img, screenAspectRatio, prompt):
     def get_image(image_url):
         # Send a GET request to the URL and store the response
         response = requests.get(image_url)
@@ -140,22 +146,15 @@ def ExtendImageVertical(img, screenAspectRatio, prompt):
     rectangle = np.zeros([newHeight, w, f], dtype='uint8')
     start = (newHeight - w) // 2
     rectangle[start:start + h,:] = np.array(img)
-    Image.fromarray(rectangle)
 
     top = rectangle[:h, :]
     bottom = rectangle[-h:, :]
-
-    Image.fromarray(top)
-    Image.fromarray(bottom)
 
     # # Top part is all zeros
     mask_top = np.concatenate([np.zeros([start, w, f+1]), 
                             255*np.ones([h - start, w , f+1])]).astype('uint8')
     mask_bottom = np.concatenate([255*np.ones([h - start, w, f+1]), 
                             np.zeros([start, w, f+1])]).astype('uint8')
-
-    Image.fromarray(mask_top)
-    Image.fromarray(mask_bottom)
 
     top_buffer = BytesIO()
     mask_buffer = BytesIO()
@@ -229,66 +228,73 @@ def AddCaption(image, message, author, fontColor='white', borderColor='black'):
 
     draw.text(textLocation, textOverlay, fill=fontColor, font=font)#'OpenSansCondensed-LightItalic.ttf')
 
-    return image
+    return image    
 
-def resizeToScreenResolution(image):
-    user32 = ctypes.windll.user32    
-    return image.resize((user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)))
-
-def ProcessImage(image, message, author, prompt, extended):
+def ProcessSave(image, message, author, prompt, exportFormat, saveName):
+    imageNames = []
+    def SaveImage(img, suffix):
+        if exportFormat[4] == '1':
+            imgCap = AddCaption(img.copy(), message, author)
+            imgCap.save(saveName + '_' + suffix + 'Caption.png')
+            imageNames.append(saveName + '_' + suffix + 'Caption.png')
+        if exportFormat[5] == '1':
+            img.save(saveName + '_' + suffix + '.png')
+            imageNames.append(saveName + '_' + suffix + '.png')
+            
     user32 = ctypes.windll.user32    
     screenAspectRatio = user32.GetSystemMetrics(0) / user32.GetSystemMetrics(1) # width / height
     image = Image.open(image)
-    if extended:
-        imageExtended = ExtendImage(image, screenAspectRatio, prompt)
-        imageExtendedVertical = ExtendImageVertical(image, screenAspectRatio = 2, prompt=prompt)
-        imageExtended = resizeToScreenResolution(imageExtended)
-        image = AddCaption(imageExtended.copy(), message, author)
-        return image, imageExtended, imageExtendedVertical
-    else:
-        imagePadded = AddPaddingToWallpaper(image, screenAspectRatio)
-        imagePadded = resizeToScreenResolution(imagePadded)
-        image = AddCaption(imagePadded.copy(), message, author)
-        return image, imagePadded
+    '[self.cbSquare_var.get(0), self.cbPadded_var.get(1), self.cbHorizontal_var.get(2), self.cbVertical_var.get(3), self.cbCaption_var.get(4), self.cbNoCaption_var.get(5)]'
+
+    if exportFormat[2] == '1':
+        SaveImage(ExtendImageHorizontal(image, screenAspectRatio, prompt), 'horizontal')
+    if exportFormat[1] == '1':
+        SaveImage(AddPaddingToWallpaper(image, screenAspectRatio), 'padded')
+    if exportFormat[0] == '1':
+        SaveImage(image, 'square')
+    if exportFormat[3] == '1':
+        verticalImage = ExtendImageVertical(image, screenAspectRatio = 2, prompt=prompt)
+        verticalImage.save(saveName + '_vertical.png')
+        imageNames.append(saveName + '_vertical.png')
         
-def SaveImage(urls, name, quote, author, prompt, extended):
+    return imageNames[0]
+
+def SaveImageCalled(urls, name, quote, author, prompt, exportFormat):
     if not os.path.exists(name.split('/')[0]):
         os.makedirs(name.split('/')[0])
     for i in range(len(urls)):
-        imageSaveName = f"{name}.png"
+        if os.path.exists("Wallpapers/wallpaper_logs.txt"):
+            f = open("Wallpapers/wallpaper_logs.txt", "r", encoding="utf8")
+            count = len(re.split("\n", f.read()))
+            imageSaveName = f"{name}{count}"
+        else:
+            count = 1
+            imageSaveName = f"{name}{count}"
+        
         imageData = requests.get(urls[i]).content
         imageStream = io.BytesIO(imageData)
-        image, imageNoCaption, imageVertical = ProcessImage(imageStream, quote, author, prompt, extended)
-        count = 1
-        if os.path.exists(imageSaveName):
-            while os.path.exists(imageSaveName):
-                imageSaveName = f"{name}{count}.png"
-                imageNoCaptionSaveName = f"{name}{count}_nocap.png"
-                imageVerticalSaveName = f"{name}{count}_vertical.png"
-                count += 1            
-        else:
-            imageSaveName = f"{name}.png"
-            imageNoCaptionSaveName = f"{name}_nocap.png"
-            imageVerticalSaveName = f"{name}_vertical.png"
-        image.save(imageSaveName)
-        imageNoCaption.save(imageNoCaptionSaveName)
-        imageVertical.save(imageVerticalSaveName)
-                
+        imageSaveName = ProcessSave(imageStream, quote, author, prompt, exportFormat, imageSaveName)
+    
+        f = open("Wallpapers/wallpaper_logs.txt", "a", encoding="utf8")
+        print(str(count) + ". " + quote + author + " | " + prompt + " \n")
+        f.write(str(count) + ". " + quote + author + " | " + prompt + " \n")
+        f.close()
+        
     return imageSaveName
 
 def SetWallpaper(imageName):
     cwd = os.getcwd()
     ctypes.windll.user32.SystemParametersInfoW(20, 0, cwd+f"\{imageName}" , 0) 
-
-imageName = 'Wallpapers/wallpaper'
-gptAPIKey = ""
-category = ['inspirational' ,'famous-quotes']  # hindi_categories: success, love, attitude, positive, motivational
-language = 'english' # english or hindi
-
-quote, author = GetQuote(category, language)
-prompt = GetPromptFromQuote(quote, category, gptAPIKey)
-image_url = GetImageURL(prompt, gptAPIKey, ImageCount=1, ImageSize='1024x1024')
-
-print("Quote: " + quote +  author + "\n" + prompt)
-imageName = SaveImage(image_url, imageName, quote, author, prompt, extended=True)
-SetWallpaper(imageName)
+    
+def GenerateWallpaper(category, artStyle, exportFormat, vibeStr, apiKey, language):
+    imageName = 'Wallpapers/wallpaper'
+    category = [category,'famous-quotes']
+    # languague = 'english'
+    print(category, artStyle, exportFormat, vibeStr, apiKey, language)
+    quote, author = GetQuote(category, language)
+    prompt = GetPromptFromQuote(quote, category, artStyle, vibeStr, apiKey)
+    image_url = GetImageURL(prompt, ImageCount=1, ImageSize='1024x1024')
+    print("Quote: " + quote +  author + "\n" + prompt)
+    
+    imageName = SaveImageCalled(image_url, imageName, quote, author, prompt, exportFormat)
+    SetWallpaper(imageName)
