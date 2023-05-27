@@ -13,7 +13,7 @@ The Quote Wallpaper Generator is a Python application that allows you to create 
 - Choose art style: Specify the art style for the wallpapers (e.g., abstract, anime, realistic).
 - Custom vibe: Add an optional vibe to further personalize the wallpapers.
 - Export formats: Choose the desired export formats, including square, padded, horizontal, vertical, with or without captions.
-- API key: Enter your OpenAI API key to access the OpenAI language model for extracting features from quote and generating images for wallpapers.
+- API key: Enter your OpenAI API key to access the OpenAI models for extracting features from quote and generating images for wallpapers.
 
 ### Prerequisites
 
@@ -52,14 +52,6 @@ python WallpaperGenerator.py
 
 Contributions to the Quote Wallpaper Generator project are welcome! If you encounter any issues, have suggestions for improvements, or would like to add new features, please feel free to open an issue or submit a pull request.
 
-### License
-
-The Quote Wallpaper Generator project is licensed under the [MIT License].
-
 ### Acknowledgments
 
-- The Quote Wallpaper Generator utilizes the OpenAI GPT-3 language model for generating quotes. Special thanks to the OpenAI team for their incredible work.
-
-### Contact
-
-If you have any questions or need assistance with the Quote Wallpaper Generator, please contact aaryanbhardwaj97@gmail.com.
+- The Quote Wallpaper Generator utilizes the OpenAI DALL-E and GPT-3 models for extracting features from quote and generating images for wallpapers. Special thanks to the OpenAI team for their incredible work.
