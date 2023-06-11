@@ -1,4 +1,4 @@
-# AI_Tool
+# AI_Tools
 
 Just a collection of AI based projects I'm working on in my free time.
 
@@ -55,3 +55,74 @@ Contributions to the Quote Wallpaper Generator project are welcome! If you encou
 ### Acknowledgments
 
 - The Quote Wallpaper Generator utilizes the OpenAI DALL-E and GPT-3 models for extracting features from quote and generating images for wallpapers. Special thanks to the OpenAI team for their incredible work.
+
+
+## 2. Image Editor
+
+The AI Image Editor is a Python-based application that utilizes OpenAI's Dall-E model for image editing. With this tool, you can make creative and unique edits to your images by providing prompts to the AI model.
+
+### Features
+
+- Utilizes OpenAI's Dall-E model for image editing
+- Allows you to open an image from your computer
+- Provides a user-friendly interface for marking regions to be edited
+- Creates a mask based on the selected region
+- Edits the image based on a prompt provided by the user
+- Saves the edited image for further use
+
+### Prerequisites
+
+- Python 3.x installed
+- OpenAI Python library installed
+- An OpenAI API key
+
+### Installation
+
+1. Clone the repository to your local machine.
+2. Install the required dependencies by running the following command:
+   ```
+   pip install -r requirements.txt
+   ```
+
+### Usage
+
+1. Run the Python file 'ImageEditor.py' using the following command:
+   ```
+   python ImageEditor.py
+   ```
+
+2. When the GUI is running, click the 'Open Image' button to select an image from your computer.
+
+3. Draw a rectangle on the image to mark the region you want to edit.
+
+4. Click the 'Create Mask' button to generate a mask based on the selected region.
+
+5. Enter a prompt describing the desired edits for the whole image in the prompt dialog box.
+
+6. Click the 'Edit Image' button to initiate the image editing process. Please note that it may take a couple of minutes to complete.
+
+7. Once the editing process is finished, the edited image will be displayed on the canvas, and a message box will indicate that the image has been saved.
+
+### Future Works
+
+In the future, we plan to enhance the AI Image Editor with the following features and improvements:
+
+1. **Support for Non-Square Images**: Currently, the code only works with square images. We aim to extend the functionality to handle images of various aspect ratios, allowing users to edit images of any dimensions.
+
+2. **Context-Based Editing**: We intend to incorporate context-based editing, where the bounding area for the edit is selected based on the user's prompt and the objects present in the image. This enhancement will provide more precise and targeted editing options, resulting in more accurate and contextually appropriate image modifications.
+
+3. **Improved User Interface**: We are dedicated to enhancing the user experience by refining the application's interface. This includes providing more intuitive controls, improving the responsiveness of the GUI, and incorporating additional features that simplify the editing process.
+
+We are excited about the future development of the AI Image Editor and welcome contributions from the open-source community to help us achieve these goals. Stay tuned for updates and improvements!
+
+### File Description
+
+- `ImageEditor.py`: The main Python file that contains the code for the AI Image Editor application.
+
+### Contributions
+
+Contributions to the AI Image Editor project are welcome. If you would like to contribute, please follow the standard guidelines for pull requests.
+
+### Acknowledgment
+
+The AI Image Editor project utilizes OpenAI's Dall-E model for image editing. We would like to express our gratitude to OpenAI for their groundbreaking work and for providing the tools and resources to make this project possible.
